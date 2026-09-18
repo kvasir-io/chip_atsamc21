@@ -1,0 +1,6 @@
+[submodule "core"]
+	path = core
+	url = https://github.com/kvasir-io/core_cortex_m0plus.git
+[submodule "src/chip/atsam_common"]
+	path = src/chip/atsam_common
+	url = https://github.com/kvasir-io/chip_atsam_common.git
