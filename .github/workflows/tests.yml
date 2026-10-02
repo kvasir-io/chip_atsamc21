@@ -1,0 +1,56 @@
+name: Tests
+
+# The host tests of this chip's clock limits (tests/CMakeLists.txt): most checks are static_asserts, so building is the
+# test. They compile src/chip/ClockLimits.hpp against the src/chip/atsam_common submodule at the commit this repository
+# records, and need Kvasir_SDK's Util/Prescaler.hpp, cloned next to this checkout.
+
+on:
+    push:
+        branches:
+            - master
+    pull_request:
+        branches:
+            - master
+    workflow_dispatch:
+
+jobs:
+    test:
+        name: ${{ matrix.compiler.cc }}
+        runs-on: ubuntu-latest
+        container:
+            image: archlinux:latest
+        strategy:
+            fail-fast: false
+            matrix:
+                compiler:
+                    - {cc: gcc, cxx: g++}
+                    - {cc: clang, cxx: clang++}
+
+        steps:
+            - name: Set up C++ environment
+              run: |
+                pacman -Syu --noconfirm --disable-download-timeout
+                pacman -S --noconfirm --disable-download-timeout git cmake ninja base-devel ${{ matrix.compiler.cc == 'clang' && 'clang' || '' }}
+
+            # src/chip/atsam_common is the submodule needed; not recursive
+            - name: Checkout repository
+              uses: actions/checkout@v6
+              with:
+                submodules: true
+
+            # A plain git clone rather than another actions/checkout: act cannot run a JS action for another repository
+            # in the bare archlinux container (no node). No submodules: only headers of src/ are used.
+            - name: Checkout Kvasir SDK
+              run: git clone --depth 1 https://github.com/kvasir-io/Kvasir_SDK.git "$GITHUB_WORKSPACE/../Kvasir_SDK"
+
+            - name: Configure CMake
+              run: cmake -S tests -B build -G Ninja -DCMAKE_BUILD_TYPE=Debug
+              env:
+                CC: ${{ matrix.compiler.cc }}
+                CXX: ${{ matrix.compiler.cxx }}
+
+            - name: Build tests
+              run: cmake --build build -j"$(nproc)"
+
+            - name: Run tests
+              run: ctest --test-dir build --output-on-failure

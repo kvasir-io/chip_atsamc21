@@ -1,5 +1,6 @@
 #pragma once
 
+#include "ClockLimits.hpp"
 #include "kvasir/Register/Register.hpp"
 #include "kvasir/Register/Utility.hpp"
 #include "peripherals/GCLK.hpp"
@@ -65,6 +66,20 @@ namespace Kvasir { namespace GCLK {
         tc7               = 45
     };
 
+    namespace detail {
+        // A warning, not an error: what the silicon does with a division above the maximum is
+        // unknown (SAM C21 DS60001479M Table 16-3, md line 6389, gives the bits only; 2^(bits + 1)
+        // assumed as on the D21 and E5x). The note names Generator and Div.
+        template<unsigned           Generator,
+                 unsigned long long Div>
+        [[deprecated(
+          "GCLK generator division above the datasheet's Maximum Division Factor; "
+          "unmeasured what the part does")]]
+        constexpr bool divisionAboveTableMaximum() {
+            return true;
+        }
+    }   // namespace detail
+
     template<unsigned Generator, GeneratorSource Source, unsigned long long Div>
     struct GenericClockGenerator {
         using GC = Kvasir::Peripheral::GCLK::Registers<>::GENCTRL<Generator>;
@@ -89,7 +104,17 @@ namespace Kvasir { namespace GCLK {
             }
         }();
 
+        static constexpr bool divisionInTable = Div <= ClockLimits::C21::gclkMaxDivision(Generator);
+
         [[nodiscard]] static constexpr auto enable() {
+            // Opt-in (-DKVASIR_WARN_GCLK_DIVISION) so firmwares stay warning-free; divisionInTable
+            // stays for a check of your own.
+#if defined(KVASIR_WARN_GCLK_DIVISION)
+            if constexpr(!divisionInTable) {
+                [[maybe_unused]] constexpr bool warned
+                  = detail::divisionAboveTableMaximum<Generator, Div>();
+            }
+#endif
             return list(Register::overrideDefaults<typename GC::default_values>::value(
               set(GC::genen),
               write(divsel),
