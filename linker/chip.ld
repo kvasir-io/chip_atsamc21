@@ -1,4 +1,4 @@
-/* Linker script for ATSAMC21E17A cortex-m0plus */
+/* Linker script for ATSAMC21E17A and ATSAMC21G17A (same memories) cortex-m0plus */
 
 MEMORY{
     flash  (xr ) : ORIGIN = 0x00000000, LENGTH = 128K

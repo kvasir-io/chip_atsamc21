@@ -1,9 +1,19 @@
 include(${CMAKE_CURRENT_LIST_DIR}/../core/cmake/core.cmake)
 
-set(TARGET_MPU ATSAMC21E17A)
-set(TARGET_FLASH_SIZE 131072)
-set(TARGET_RAM_SIZE 16384)
-set(TARGET_EEPROM_SIZE 4096)
+# Which SAM C21 this firmware is for. A project sets it before include(kvasir.cmake), or passes it as
+# -DKVASIR_ATSAMC21_MPU=...; without it the part is the ATSAMC21E17A this package started with.
+if(NOT KVASIR_ATSAMC21_MPU)
+    set(KVASIR_ATSAMC21_MPU ATSAMC21E17A)
+endif()
+if(NOT EXISTS ${CMAKE_CURRENT_LIST_DIR}/variants/${KVASIR_ATSAMC21_MPU}.cmake)
+    file(
+        GLOB _known
+        RELATIVE ${CMAKE_CURRENT_LIST_DIR}/variants
+        ${CMAKE_CURRENT_LIST_DIR}/variants/*.cmake)
+    list(TRANSFORM _known REPLACE "\\.cmake$" "")
+    message(FATAL_ERROR "KVASIR_ATSAMC21_MPU is '${KVASIR_ATSAMC21_MPU}'; chip_atsamc21 knows: ${_known}")
+endif()
+include(${CMAKE_CURRENT_LIST_DIR}/variants/${KVASIR_ATSAMC21_MPU}.cmake)
 
 # The SDK writes a UF2 next to every image and passes this through as the family id, so it has to be set even though
 # this part has no UF2 bootloader - it is flashed over SWD. There is no registered UF2 family for the SAM C21 (the list
@@ -11,9 +21,20 @@ set(TARGET_EEPROM_SIZE 4096)
 # none.
 set(TARGET_UF2_CODE 0x00000000)
 
-set(LINKER_FILE ${CMAKE_CURRENT_LIST_DIR}/../linker/chip.ld)
-
-svd_convert(peripherals SVD_FILE ${CMAKE_CURRENT_LIST_DIR}/../chip.svd OUTPUT_DIRECTORY peripherals)
+# The write-only guard: every write-only field of the SVD is classified (oneToSet, a key, or <!-- Kvasir: write-only
+# accepted -->), so a new one stops the build; registers with no readable field are never read
+svd_convert(
+    peripherals
+    SVD_FILE
+    ${CHIP_SVD_FILE}
+    OUTPUT_DIRECTORY
+    peripherals
+    WRITE_ONLY_GUARD
+    error
+    WRITE_ONLY_REGISTERS
+    derived
+    WRITE_ONLY_MASK
+    ON)
 
 # kvasir_devices: chip.hpp includes its drivers unconditionally (SamPushButton/SamRotaryEncoder ->
 # kvasir/Devices/PushButton.hpp, RotaryEncoder.hpp; Sercom_I2CQueued.hpp -> kvasir/Devices/I2C/LineRecovery.hpp), so

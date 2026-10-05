@@ -1,7 +1,7 @@
 name: Tests
 
 # The host tests of this chip's clock limits (tests/CMakeLists.txt): most checks are static_asserts, so building is the
-# test. They compile src/chip/ClockLimits.hpp against the src/chip/atsam_common submodule at the commit this repository
+# test. Also checks that svd/ATSAMC21G17A.svd is what scripts/make_g17a_svd.py makes of chip.svd (python). They compile src/chip/ClockLimits.hpp against the src/chip/atsam_common submodule at the commit this repository
 # records, and need Kvasir_SDK's Util/Prescaler.hpp, cloned next to this checkout.
 
 on:
@@ -30,7 +30,7 @@ jobs:
             - name: Set up C++ environment
               run: |
                 pacman -Syu --noconfirm --disable-download-timeout
-                pacman -S --noconfirm --disable-download-timeout git cmake ninja base-devel ${{ matrix.compiler.cc == 'clang' && 'clang' || '' }}
+                pacman -S --noconfirm --disable-download-timeout git cmake ninja base-devel python ${{ matrix.compiler.cc == 'clang' && 'clang' || '' }}
 
             # src/chip/atsam_common is the submodule needed; not recursive
             - name: Checkout repository

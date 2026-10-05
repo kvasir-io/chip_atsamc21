@@ -3,6 +3,7 @@
 #include "MCLK.hpp"
 #include "kvasir/Register/Register.hpp"
 #include "kvasir/Register/Utility.hpp"
+#include "kvasir/Util/ResetKind.hpp"
 
 #include <cstdint>
 
@@ -52,5 +53,20 @@ namespace Kvasir { namespace PM {
         if(c == RCAUSE::WDT) { return ResetCause::wdt; }
         if(c == RCAUSE::BACKUP) { return ResetCause::backup; }
         return ResetCause::syst;
+    }
+
+    /// reset_cause() as the SDK's boot guard sees it (kvasir/Util/ResetKind.hpp): RSTC.RCAUSE. A debugger's
+    /// reset is SYST like a software request: without a record the guard counts neither.
+    inline ResetKind resetKind() {
+        switch(reset_cause()) {
+        case ResetCause::por:
+        case ResetCause::backup: return ResetKind::powerOn;
+        case ResetCause::bod12:
+        case ResetCause::bod33:  return ResetKind::brownOut;
+        case ResetCause::ext:    return ResetKind::external;
+        case ResetCause::wdt:    return ResetKind::watchdogTimeout;
+        case ResetCause::syst:   return ResetKind::softwareRequest;
+        }
+        return ResetKind::unknown;
     }
 }}   // namespace Kvasir::PM

@@ -24,3 +24,28 @@ add_executable(clock_limits clock_limits_test.cpp)
 target_include_directories(clock_limits PRIVATE ${KVASIR_ROOT}/src ${_chip_src})
 target_compile_options(clock_limits PRIVATE -Wall -Wextra -Wpedantic -Werror)
 add_test(NAME clock_limits COMMAND clock_limits)
+
+# svd/ATSAMC21G17A.svd is generated from chip.svd (svd/README.md): stale after an edit of chip.svd that was not followed
+# by scripts/make_g17a_svd.py.
+find_package(Python3 COMPONENTS Interpreter)
+if(Python3_FOUND)
+    add_test(NAME g17a_svd_up_to_date COMMAND ${Python3_EXECUTABLE} -B
+                                              ${CMAKE_CURRENT_LIST_DIR}/../scripts/make_g17a_svd.py --check)
+endif()
+
+# The write-only guard: every write-only field of this chip's SVD(s) is classified (oneToSet, a key, or <!-- Kvasir:
+# write-only accepted -->), so svd_converter --write-only-guard=error must exit 0. Needs the SDK's svd_converter (the
+# sibling checkout's submodule); left out without it.
+if(EXISTS ${KVASIR_ROOT}/svd_converter/CMakeLists.txt)
+    add_subdirectory(${KVASIR_ROOT}/svd_converter svd_converter)
+    foreach(svd chip.svd)
+        string(MAKE_C_IDENTIFIER ${svd} _svd_name)
+        file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/write_only_guard/${_svd_name})
+        add_test(
+            NAME svd_write_only_guard_${_svd_name}
+            COMMAND svd_converter --write-only-guard=error --write-only-registers=derived
+                    ${CMAKE_CURRENT_LIST_DIR}/../${svd} ${CMAKE_CURRENT_BINARY_DIR}/write_only_guard/${_svd_name} json)
+    endforeach()
+else()
+    message(STATUS "svd_write_only_guard left out: no ${KVASIR_ROOT}/svd_converter")
+endif()

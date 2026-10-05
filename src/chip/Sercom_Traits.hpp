@@ -1,5 +1,6 @@
 #pragma once
 #include "Interrupt.hpp"
+#include "Variant.hpp"
 #include "chip/atsam_common/DMAC.hpp"
 #include "chip/atsam_common/Sercom_Common.hpp"
 #include "kvasir/Io/Types.hpp"
@@ -33,11 +34,23 @@ namespace Kvasir { namespace Sercom { namespace Traits {
             using Type = brigand::list<decltype(Kvasir::Interrupt::sercom3)>;
         };
 
+#if defined(KVASIR_CHIP_ATSAMC21G17A)
+        template<>
+        struct IsrIndex<4> {
+            using Type = brigand::list<decltype(Kvasir::Interrupt::sercom4)>;
+        };
+
+        template<>
+        struct IsrIndex<5> {
+            using Type = brigand::list<decltype(Kvasir::Interrupt::sercom5)>;
+        };
+#endif
+
     }   // namespace detail
 
     struct SercomTraits : SercomTraitsBase<SercomTraits> {
         static constexpr int                sercomInstanceBegin = 0;
-        static constexpr int                sercomInstanceEnd   = 4;
+        static constexpr int                sercomInstanceEnd   = Chip::isG ? 6 : 4;
         static constexpr std::array<int, 0> disabledInstances   = {{}};
 
         template<unsigned Instance>
@@ -47,7 +60,7 @@ namespace Kvasir { namespace Sercom { namespace Traits {
 
         template<unsigned Instance>
         static constexpr auto DmaTriggers() {
-            static_assert(3 >= Instance);
+            static_assert(Instance < sercomInstanceEnd);
             if constexpr(Instance == 0) {
                 return std::make_pair(Kvasir::DMAC::TriggerSource::sercom0_rx,
                                       DMAC::TriggerSource::sercom0_tx);
@@ -60,6 +73,14 @@ namespace Kvasir { namespace Sercom { namespace Traits {
             } else if constexpr(Instance == 3) {
                 return std::make_pair(Kvasir::DMAC::TriggerSource::sercom3_rx,
                                       DMAC::TriggerSource::sercom3_tx);
+#if defined(KVASIR_CHIP_ATSAMC21G17A)
+            } else if constexpr(Instance == 4) {
+                return std::make_pair(Kvasir::DMAC::TriggerSource::sercom4_rx,
+                                      DMAC::TriggerSource::sercom4_tx);
+            } else if constexpr(Instance == 5) {
+                return std::make_pair(Kvasir::DMAC::TriggerSource::sercom5_rx,
+                                      DMAC::TriggerSource::sercom5_tx);
+#endif
             }
         }
 
@@ -114,6 +135,33 @@ namespace Kvasir { namespace Sercom { namespace Traits {
           PinInfo{3, 0, 23, 2, 1},
           PinInfo{3, 0, 24, 2, 2},
           PinInfo{3, 0, 25, 2, 3},
+#if defined(KVASIR_CHIP_ATSAMC21G17A)
+          // ATSAMC21G17A, 48 pins: what the G column of Table 6-2 adds - PA12/PA13, part of
+          // PORTB, and SERCOM4/SERCOM5.
+          // Instance 2
+          PinInfo{2, 0, 12, 2, 0},
+          PinInfo{2, 0, 13, 2, 1},
+          // Instance 4
+          PinInfo{4, 1,  8, 3, 0},
+          PinInfo{4, 1,  9, 3, 1},
+          PinInfo{4, 1, 10, 3, 2},
+          PinInfo{4, 1, 11, 3, 3},
+          PinInfo{4, 0, 12, 3, 0},
+          PinInfo{4, 0, 13, 3, 1},
+          PinInfo{4, 0, 14, 3, 2},
+          PinInfo{4, 0, 15, 3, 3},
+          // Instance 5
+          PinInfo{5, 0, 20, 2, 2},
+          PinInfo{5, 0, 21, 2, 3},
+          PinInfo{5, 0, 22, 3, 0},
+          PinInfo{5, 0, 23, 3, 1},
+          PinInfo{5, 0, 24, 3, 2},
+          PinInfo{5, 0, 25, 3, 3},
+          PinInfo{5, 1,  2, 3, 0},
+          PinInfo{5, 1,  3, 3, 1},
+          PinInfo{5, 1, 22, 3, 2},
+          PinInfo{5, 1, 23, 3, 3},
+#endif
         };
     };
 

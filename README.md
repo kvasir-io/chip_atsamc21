@@ -1,28 +1,38 @@
 # chip_atsamc21
 
-Kvasir chip package for the **Microchip ATSAMC21E17A**: Cortex-M0+, 128 KiB flash, 16 KiB RAM,
-4 KiB RWW flash used as an emulated EEPROM, one CAN controller and four SERCOMs.
+Kvasir chip package for the **Microchip ATSAMC21E17A** and **ATSAMC21G17A**: Cortex-M0+, 128 KiB
+flash, 16 KiB RAM, 4 KiB RWW flash used as an emulated EEPROM; the 32-pin E with PORTA, four
+SERCOMs and one CAN controller, the 48-pin G with part of PORTB, six SERCOMs and two CANs.
+
+The part is picked with `KVASIR_ATSAMC21_MPU` (set before `include(kvasir.cmake)`, or
+`-DKVASIR_ATSAMC21_MPU=...`); without it the part is the ATSAMC21E17A:
+
+    set(KVASIR_ATSAMC21_MPU ATSAMC21G17A)   # psu_hmi
 
 Nothing builds here. `cmake/chip.cmake` is an `include()` fragment the Kvasir SDK pulls in
 through `CHIP_ROOT`, the peripheral headers are generated from `chip.svd` into the consumer's
 binary directory, and `src/chip/*.hpp` is hand-written. To exercise the package, build
 something that uses it:
 
-    cd ../rgb_rotary && just chip_root=$PWD/../chip_atsamc21 build
+    cd ../rgb_rotary && just chip_root=$PWD/../chip_atsamc21 build   # E17A
+    cd ../psu_hmi && just build-all                                     # G17A
 
 ## Layout
 
 | Path | What |
 | --- | --- |
-| `chip.svd` | the part's CMSIS SVD, the source of `peripherals/*.hpp` |
-| `cmake/chip.cmake` | MPU, memory sizes, the linker script, `svd_convert()` |
-| `linker/chip.ld` | flash at 0, the RWW EEPROM at 0x00400000, RAM at 0x20000000 |
+| `chip.svd` | the ATSAMC21E17A's CMSIS SVD, the source of `peripherals/*.hpp` |
+| `svd/ATSAMC21G17A.svd` | the G part's, made from `chip.svd` by `scripts/make_g17a_svd.py` (`svd/README.md`) |
+| `cmake/chip.cmake` | picks the part (`cmake/variants/<part>.cmake`: MPU, memory sizes, linker script, SVD), `svd_convert()` |
+| `linker/chip.ld` | flash at 0, the RWW EEPROM at 0x00400000, RAM at 0x20000000 (both parts) |
 | `core/` | `core_cortex_m0plus`, a submodule |
 | `src/chip/atsam_common/` | `chip_atsam_common`, a submodule shared with chip_atsamd21 |
 | `src/chip/*.hpp` | what is specific to this part (below) |
 
-`src/chip/` holds the part's own tables: `Interrupt.hpp` (the vector table),
-`Io.hpp` (PORTA only, and which of its pins the 32-pin package does not bond),
+`src/chip/` holds the part's own tables: `Variant.hpp` (which part, from the define the G
+variant's cmake file sets; every header below asks it where the parts differ),
+`Interrupt.hpp` (the vector table; SERCOM4/5 and CAN1 on the G only),
+`Io.hpp` (the ports and which of their pins each package does not bond),
 `GCLK.hpp` (the C21's generator/peripheral-channel scheme, which is not the D21's),
 `MCLK.hpp` and `PM.hpp` (clock gating, and the reset cause out of RSTC),
 `Sercom_Traits.hpp`, `CAN_Traits.hpp`, `NVMCTRL_Traits.hpp`, `Dmac_Traits.hpp` and
@@ -44,6 +54,11 @@ reason written where the include would be:
 Each is a straightforward port; none had a user when the package was written.
 
 ## Status
+
+The G part (2026-10-03): its SVD matches Microchip's own ATSAMC21G17A.svd field for field except
+for the names chip.svd spells the shared drivers' way (USART_INT/USART_EXT, CAN for CAN0) and
+the write semantics marked in chip.svd; adding it left rgb_rotary's E17A images byte-identical.
+psu_hmi builds on it; nothing has run on a G board yet, and SERCOM4/5 and CAN1 have no user.
 
 The CAN driver in `chip_atsam_common` had no consumer at all until this package existed - the
 D21 has no CAN peripheral - so `rgb_rotary` is the first firmware to compile it since the SDK
