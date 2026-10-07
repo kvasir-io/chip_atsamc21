@@ -14,20 +14,9 @@ namespace Kvasir { namespace CAN { namespace Traits {
         static constexpr int                canInstanceEnd    = Chip::isG ? 2 : 1;
         static constexpr std::array<int, 0> disabledInstances = {{}};
 
+        // specialised below the class: gcc takes no explicit specialisation in class scope
         template<unsigned Instance>
         struct IsrIndex;
-
-        template<>
-        struct IsrIndex<0> {
-            using Type = brigand::list<decltype(Kvasir::Interrupt::can0)>;
-        };
-
-#if defined(KVASIR_CHIP_ATSAMC21G17A)
-        template<>
-        struct IsrIndex<1> {
-            using Type = brigand::list<decltype(Kvasir::Interrupt::can1)>;
-        };
-#endif
 
         static constexpr std::array pinMuxInfos{
           // Instance 0
@@ -42,5 +31,17 @@ namespace Kvasir { namespace CAN { namespace Traits {
 #endif
         };
     };
+
+    template<>
+    struct CanTraits::IsrIndex<0> {
+        using Type = brigand::list<decltype(Kvasir::Interrupt::can0)>;
+    };
+
+#if defined(KVASIR_CHIP_ATSAMC21G17A)
+    template<>
+    struct CanTraits::IsrIndex<1> {
+        using Type = brigand::list<decltype(Kvasir::Interrupt::can1)>;
+    };
+#endif
 
 }}}   // namespace Kvasir::CAN::Traits
