@@ -10,7 +10,7 @@ namespace L = ClockLimits::C21;
 using ClockLimits::Supply;
 using L::Rating;
 
-// rgb_rotary: 8 MHz crystal -> 48 MHz (DIV 3, LDR 47, PRESC /1, GCLK0 /1)
+// 8 MHz crystal -> 48 MHz (DIV 3, LDR 47, PRESC /1, GCLK0 /1)
 constexpr auto d8 = DPLL::fromXosc<L::Fdpll96m>(8'000'000, 48'000'000);
 static_assert(d8.found && d8.div == 3 && d8.ldr == 47 && d8.ldrFrac == 0 && d8.presc == 0
               && d8.gclkDiv == 1);
@@ -49,7 +49,7 @@ static_assert(!DPLL::checkXosc<L::Fdpll96m>(8'000'000,
                  .fieldsFit,
               "PRESC 3 is reserved");
 
-// Table 45-41: 1 WS only to 38 MHz, so 48 MHz takes 2 (what rgb_rotary writes)
+// Table 45-41: 1 WS only to 38 MHz, so 48 MHz takes 2
 static_assert(L::waitStates<48'000'000,
                             Supply::from2V7>()
               == 2);
@@ -101,7 +101,7 @@ static_assert(Nvm::waitStates(L::WaitStates85C,
 static_assert(L::gclkMaxDivision(0) == 512 && L::gclkMaxDivision(1) == 131072
               && L::gclkMaxDivision(2) == 512);
 static_assert((1ULL << 20) > L::gclkMaxDivision(2),
-              "rgb_rotary's GCLK2 / 2^20: finding 4");
+              "GCLK2 / 2^20 is past the clamp");
 }   // namespace
 
 int main() {

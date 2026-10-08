@@ -11,7 +11,7 @@ the hand-made write semantics (`<!-- Kvasir: ... -->`, see Kvasir_SDK's notes on
 **Edit `../chip.svd`, then run `scripts/make_g17a_svd.py`**: the G file is generated, never edited by
 hand. `scripts/make_g17a_svd.py --check` (ctest `g17a_svd_up_to_date`) fails while it is stale.
 
-Checked on 2026-10-03 against Microchip's own `ATSAMC21G17A.svd` (the copy in the 2021 package
+Checked against Microchip's own `ATSAMC21G17A.svd` (the copy in the 2021 package
 `kvasir_atsamc21g17a`): every register offset, field position and width and enumerated value
 agrees, except the SERCOM USART register set (Microchip: one `USART`, here `USART_INT` and
 `USART_EXT` as in the E's file), `CAN` for Microchip's `CAN0`, and `MPU`/`NVIC`, which only
