@@ -150,8 +150,8 @@ namespace Kvasir { namespace GCLK {
     // RTC, OSC32KCTRL, RSTC and WRTLOCKed GCLKs, Table 18-1).
     inline bool looksLikeAfterReset() {
         using GC        = Kvasir::Peripheral::GCLK::Registers<>;
-        auto const apbc = *reinterpret_cast<std::uint32_t const volatile*>(
-          Kvasir::Peripheral::MCLK::Registers<>::APBCMASK::Addr::value);
+        auto const apbc = Kvasir::Register::readWhole(
+          Kvasir::Peripheral::MCLK::Registers<>::APBCMASK::FULLREGISTER);
         auto const source = static_cast<GeneratorSource>(
           static_cast<unsigned>(get<0>(apply(read(GC::GENCTRL<0>::src)))));
         return apbc == 0U && source == GeneratorSource::osc48m;
@@ -192,9 +192,10 @@ namespace Kvasir { namespace GCLK {
         Kvasir::Register::waitUntil<Kvasir::Chip::Sam::SyncBound>(
           Kvasir::Register::isSet(Osc::STATUS::osc48mrdy));
         apply(GenericClockGenerator<0, GeneratorSource::osc48m, 1>::enable());
-        // SYNCBUSY.GENCTRL0 is bit 2 (16.8.2); the SVD gives the field an enum, so the bit is read as such
-        Kvasir::Register::waitUntil<Kvasir::Chip::Sam::SyncBound>(
-          [] { return (get<0>(apply(read(GC::SYNCBUSY::FULLREGISTER))) & (1U << 2U)) == 0; });
+        // SYNCBUSY.GENCTRL0 (16.8.2): the SVD gives the one-bit field an enum, so it is compared as a number
+        Kvasir::Register::waitUntil<Kvasir::Chip::Sam::SyncBound>([] {
+            return static_cast<std::uint32_t>(get<0>(apply(read(GC::SYNCBUSY::genctrl0)))) == 0;
+        });
         apply(set(Osc::OSC48MCTRL::ondemand));
     }
 }}   // namespace Kvasir::GCLK

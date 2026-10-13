@@ -43,15 +43,17 @@ namespace Kvasir { namespace NVMCTRL { namespace Traits {
     // STATUS.PROGE (bit 2), LOCKE (3), NVME (4) and INTFLAG.ERROR (1) are cleared by writing a one (DS60001479M
     // 27.8.7, 27.8.6); LOAD (STATUS bit 1) is left alone. Only what was read is written back.
     static inline std::uint8_t takeErrors() {
+        static constexpr std::uint16_t Errors
+          = NVM::STATUS::proge.Mask | NVM::STATUS::locke.Mask | NVM::STATUS::nvme.Mask;
         auto const status
-          = static_cast<std::uint16_t>(get<0>(apply(read(NVM::STATUS::FULLREGISTER))) & 0x1CU);
+          = static_cast<std::uint16_t>(get<0>(apply(read(NVM::STATUS::FULLREGISTER))) & Errors);
         if(status != 0) {
             apply(write(NVM::STATUS::FULLREGISTER, status));
             apply(set(NVM::INTFLAG::error));
         }
-        return Kvasir::Nvm::Detail::bits((status & 0x08U) != 0,
-                                         (status & 0x04U) != 0,
-                                         (status & 0x10U) != 0);
+        return Kvasir::Nvm::Detail::bits(Kvasir::Register::extract(NVM::STATUS::locke, status) != 0,
+                                         Kvasir::Register::extract(NVM::STATUS::proge, status) != 0,
+                                         Kvasir::Register::extract(NVM::STATUS::nvme, status) != 0);
     }
 
     // tFRE (row erase) max 6 ms, tFPP (page write) max 2.5 ms (DS60001479M Table 45-42, md l.51019-51020); x2, at the
@@ -75,10 +77,10 @@ namespace Kvasir { namespace NVMCTRL { namespace Traits {
     static inline bool inArray(std::uint32_t addr,
                                std::uint32_t bytes,
                                bool          mainArray) {
-        auto const          param = get<0>(apply(read(NVM::PARAM::FULLREGISTER)));
-        std::uint32_t const page  = 8U << ((param >> 16U) & 0x7U);
-        std::uint32_t const base  = mainArray ? 0U : 0x0040'0000U;
-        std::uint32_t const size  = page * (mainArray ? (param & 0xFFFFU) : (param >> 20U));
+        auto const param = apply(read(NVM::PARAM::nvmp, NVM::PARAM::psz, NVM::PARAM::rwweep));
+        std::uint32_t const page = 8U << static_cast<std::uint32_t>(get<1>(param));
+        std::uint32_t const base = mainArray ? 0U : 0x0040'0000U;
+        std::uint32_t const size = page * (mainArray ? get<0>(param) : get<2>(param));
         return addr >= base && addr - base <= size && bytes <= size - (addr - base);
     }
 
