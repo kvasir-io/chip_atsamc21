@@ -1,13 +1,8 @@
 #pragma once
+// The SAM D2x/C2x DMAC layout (atsam_common/DmacChannelWindow.hpp: 12 channels behind CHID) over this chip's DMAC.
+#include "atsam_common/DmacChannelWindow.hpp"
 #include "peripherals/DMAC.hpp"
 
-#include <cstdint>
-
 namespace Kvasir { namespace DMAC { namespace Traits {
-    struct DmacTraits {
-        static constexpr std::size_t Channels = 12;
-        static constexpr bool        OldImpl  = true;
-
-        using TriggerSource = Kvasir::Peripheral::DMAC::Registers<>::CHCTRLB::TRIGSRCVal;
-    };
+    struct DmacTraits : Sam::DmacChannelWindow<Kvasir::Peripheral::DMAC::Registers<>> {};
 }}}   // namespace Kvasir::DMAC::Traits

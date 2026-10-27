@@ -1,72 +1,42 @@
 #pragma once
 
-#include "MCLK.hpp"
+#include "Blocks.hpp"
+#include "ResetCause.hpp"
+#include "atsam_common/ResetCauseDecode.hpp"
+#include "kvasir/Port/Hooks.hpp"
+#include "kvasir/Port/ResetKind.hpp"
 #include "kvasir/Register/Register.hpp"
 #include "kvasir/Register/Utility.hpp"
-#include "kvasir/Util/ResetKind.hpp"
+#include "peripherals/RSTC.hpp"
 
+#include <array>
 #include <cstdint>
 
 /// What the D21 calls PM is two peripherals here: MCLK holds the clock-gating masks (MCLK.hpp,
 /// which this aliases into Kvasir::PM so the shared drivers reach them by the one name), and RSTC
-/// holds the reset cause.
-namespace Kvasir { namespace RSTC {
-    template<unsigned baseAddr = 0x40000C00>
-    struct Registers {
-        static constexpr unsigned BaseAddr = baseAddr;
-
-        struct RCAUSE {
-            using Addr = Register::Address<baseAddr + 0x00, 0xff, 0x00, unsigned char>;
-            static constexpr Register::FieldLocation<Addr,
-                                                     Register::maskFromRange(2, 0, 7, 4),
-                                                     Register::ReadOnlyAccess,
-                                                     unsigned char>
-              flags{};
-            static constexpr Register::FieldValue<typename decltype(flags)::type, 0b0000'0001>
-              POR{};
-            static constexpr Register::FieldValue<typename decltype(flags)::type, 0b0000'0010>
-              BOD12{};
-            static constexpr Register::FieldValue<typename decltype(flags)::type, 0b0000'0100>
-              BOD33{};
-            static constexpr Register::FieldValue<typename decltype(flags)::type, 0b0001'0000>
-              EXT{};
-            static constexpr Register::FieldValue<typename decltype(flags)::type, 0b0010'0000>
-              WDT{};
-            static constexpr Register::FieldValue<typename decltype(flags)::type, 0b0100'0000>
-              SYST{};
-            static constexpr Register::FieldValue<typename decltype(flags)::type, 0b1000'0000>
-              BACKUP{};
-        };
-    };
-}}   // namespace Kvasir::RSTC
-
+/// holds the reset cause (the generated peripherals/RSTC.hpp).
 namespace Kvasir { namespace PM {
-    enum class ResetCause : std::uint8_t { por, bod12, bod33, ext, wdt, syst, backup };
-
-    inline ResetCause reset_cause() {
-        using RCAUSE = Kvasir::RSTC::Registers<>::RCAUSE;
-        auto const c = apply(read(RCAUSE::flags));
-        if(c == RCAUSE::POR) { return ResetCause::por; }
-        if(c == RCAUSE::BOD12) { return ResetCause::bod12; }
-        if(c == RCAUSE::BOD33) { return ResetCause::bod33; }
-        if(c == RCAUSE::EXT) { return ResetCause::ext; }
-        if(c == RCAUSE::WDT) { return ResetCause::wdt; }
-        if(c == RCAUSE::BACKUP) { return ResetCause::backup; }
-        return ResetCause::syst;
+    /// The latest reset's cause (RSTC.RCAUSE, DS60001479M 18.8.1; the causes in ResetCause.hpp), one load.
+    inline ResetCause resetCause() {
+        using R         = Kvasir::Peripheral::RSTC::Registers<>::RCAUSE;
+        auto const bits = apply(read(R::por, R::bodcore, R::bodvdd, R::ext, R::wdt, R::syst));
+        return Sam::oneCauseOf(bits,
+                               std::array{ResetCause::por,
+                                          ResetCause::bodcore,
+                                          ResetCause::bodvdd,
+                                          ResetCause::ext,
+                                          ResetCause::wdt,
+                                          ResetCause::syst},
+                               ResetCause::unknown);
     }
 
-    /// reset_cause() as the SDK's boot guard sees it (kvasir/Util/ResetKind.hpp): RSTC.RCAUSE. A debugger's
-    /// reset is SYST like a software request: without a record the guard counts neither.
-    inline ResetKind resetKind() {
-        switch(reset_cause()) {
-        case ResetCause::por:
-        case ResetCause::backup: return ResetKind::powerOn;
-        case ResetCause::bod12:
-        case ResetCause::bod33:  return ResetKind::brownOut;
-        case ResetCause::ext:    return ResetKind::external;
-        case ResetCause::wdt:    return ResetKind::watchdogTimeout;
-        case ResetCause::syst:   return ResetKind::softwareRequest;
-        }
-        return ResetKind::unknown;
-    }
+    /// resetCause() mapped onto the SDK's ResetKind (ResetCause.hpp toResetKind), for the boot guard.
+    inline ResetKind resetKind() { return toResetKind(resetCause()); }
 }}   // namespace Kvasir::PM
+
+/// resetCause() as the port's hook (kvasir/Port/Hooks.hpp), for the boot report:
+/// Port::LateT<Port::ResetCause<Tag::User>, Dep>{}().
+template<typename... Ts>
+struct Kvasir::Port::ResetCause<Kvasir::Tag::User, Ts...> {
+    Kvasir::PM::ResetCause operator()() const { return Kvasir::PM::resetCause(); }
+};

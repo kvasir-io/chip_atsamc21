@@ -1785,8 +1785,9 @@ Copyright (c) 2017 Microchip Technology Inc.
             <size>0xFC</size>
             <usage>registers</usage>
          </addressBlock>
+         <!-- Kvasir: named CAN0 as DS60001479M Table 10-3 does (md l.2207); the vendor SVD says CAN -->
          <interrupt>
-            <name>CAN</name>
+            <name>CAN0</name>
             <value>15</value>
          </interrupt>
          <registers>
@@ -11516,6 +11517,12 @@ Copyright (c) 2017 Microchip Technology Inc.
             <size>0x20</size>
             <usage>registers</usage>
          </addressBlock>
+         <!-- Kvasir: line 0 is shared by MCLK, OSCCTRL, OSC32KCTRL, SUPC and PAC (DS60001479M Table 10-3, md l.2186),
+              missing in the vendor SVD; named SYSTEM -->
+         <interrupt>
+            <name>SYSTEM</name>
+            <value>0</value>
+         </interrupt>
          <registers>
             <register>
                <name>INTENCLR</name>
@@ -11567,7 +11574,8 @@ Copyright (c) 2017 Microchip Technology Inc.
             <register>
                <name>CPUDIV</name>
                <description>CPU Clock Division</description>
-               <addressOffset>0x4</addressOffset>
+               <!-- Kvasir: offset 0x05, not 0x04 (0x04 is Reserved): DS60001479M 17.7 l.6932, 17.8.5 l.7083 -->
+               <addressOffset>0x5</addressOffset>
                <size>8</size>
                <resetValue>0x01</resetValue>
                <fields>
@@ -14984,6 +14992,16 @@ Copyright (c) 2017 Microchip Technology Inc.
                   <addressOffset>0x4</addressOffset>
                   <size>32</size>
                   <resetValue>0x00000000</resetValue>
+                  <fields>
+                     <field>
+                        <name>DIRCLR</name>
+                        <description>Port Data Direction Clear</description>
+                        <bitOffset>0</bitOffset>
+                        <bitWidth>32</bitWidth>
+                        <!-- Kvasir: the register's one field, named as the datasheet does (the vendor SVD has none); DS60001479M 28.8.2 md l.20598: "Writing a '0' to a bit has no effect", a 1 clears that bit of DIR -->
+                        <modifiedWriteValues>oneToClear</modifiedWriteValues>
+                     </field>
+                  </fields>
                </register>
                <register>
                   <name>DIRSET</name>
@@ -14991,6 +15009,16 @@ Copyright (c) 2017 Microchip Technology Inc.
                   <addressOffset>0x8</addressOffset>
                   <size>32</size>
                   <resetValue>0x00000000</resetValue>
+                  <fields>
+                     <field>
+                        <name>DIRSET</name>
+                        <description>Port Data Direction Set</description>
+                        <bitOffset>0</bitOffset>
+                        <bitWidth>32</bitWidth>
+                        <!-- Kvasir: the register's one field, named as the datasheet does (the vendor SVD has none); DS60001479M 28.8.3 md l.20643: "Writing a '0' to a bit has no effect", a 1 sets that bit of DIR -->
+                        <modifiedWriteValues>oneToSet</modifiedWriteValues>
+                     </field>
+                  </fields>
                </register>
                <register>
                   <name>DIRTGL</name>
@@ -14998,6 +15026,16 @@ Copyright (c) 2017 Microchip Technology Inc.
                   <addressOffset>0xC</addressOffset>
                   <size>32</size>
                   <resetValue>0x00000000</resetValue>
+                  <fields>
+                     <field>
+                        <name>DIRTGL</name>
+                        <description>Port Data Direction Toggle</description>
+                        <bitOffset>0</bitOffset>
+                        <bitWidth>32</bitWidth>
+                        <!-- Kvasir: the register's one field, named as the datasheet does (the vendor SVD has none); DS60001479M 28.8.4 md l.20685: "Writing a '0' to a bit has no effect", a 1 toggles that bit of DIR -->
+                        <modifiedWriteValues>oneToToggle</modifiedWriteValues>
+                     </field>
+                  </fields>
                </register>
                <register>
                   <name>OUT</name>
@@ -15012,6 +15050,16 @@ Copyright (c) 2017 Microchip Technology Inc.
                   <addressOffset>0x14</addressOffset>
                   <size>32</size>
                   <resetValue>0x00000000</resetValue>
+                  <fields>
+                     <field>
+                        <name>OUTCLR</name>
+                        <description>PORT Data Output Value Clear</description>
+                        <bitOffset>0</bitOffset>
+                        <bitWidth>32</bitWidth>
+                        <!-- Kvasir: the register's one field, named as the datasheet does (the vendor SVD has none); DS60001479M 28.8.6 md l.20774: "Writing a '0' to a bit has no effect", a 1 clears that bit of OUT -->
+                        <modifiedWriteValues>oneToClear</modifiedWriteValues>
+                     </field>
+                  </fields>
                </register>
                <register>
                   <name>OUTSET</name>
@@ -15019,6 +15067,16 @@ Copyright (c) 2017 Microchip Technology Inc.
                   <addressOffset>0x18</addressOffset>
                   <size>32</size>
                   <resetValue>0x00000000</resetValue>
+                  <fields>
+                     <field>
+                        <name>OUTSET</name>
+                        <description>PORT Data Output Value Set</description>
+                        <bitOffset>0</bitOffset>
+                        <bitWidth>32</bitWidth>
+                        <!-- Kvasir: the register's one field, named as the datasheet does (the vendor SVD has none); DS60001479M 28.8.7 md l.20816: "Writing a '0' to a bit has no effect", a 1 sets that bit of OUT -->
+                        <modifiedWriteValues>oneToSet</modifiedWriteValues>
+                     </field>
+                  </fields>
                </register>
                <register>
                   <name>OUTTGL</name>
@@ -15026,6 +15084,16 @@ Copyright (c) 2017 Microchip Technology Inc.
                   <addressOffset>0x1C</addressOffset>
                   <size>32</size>
                   <resetValue>0x00000000</resetValue>
+                  <fields>
+                     <field>
+                        <name>OUTTGL</name>
+                        <description>PORT Data Output Value Toggle</description>
+                        <bitOffset>0</bitOffset>
+                        <bitWidth>32</bitWidth>
+                        <!-- Kvasir: the register's one field, named as the datasheet does (the vendor SVD has none); DS60001479M 28.8.8 md l.20856: "Writing a '0' to a bit has no effect", a 1 toggles that bit of OUT -->
+                        <modifiedWriteValues>oneToToggle</modifiedWriteValues>
+                     </field>
+                  </fields>
                </register>
                <register>
                   <name>IN</name>
@@ -19958,6 +20026,21 @@ Copyright (c) 2017 Microchip Technology Inc.
                      </field>
                   </fields>
                </register>
+               <!-- Kvasir: the 8-bit view of DATA the SERCOM drivers read and point the DMAC at, as in the D21 SVD; DS60001479M 32.8.10 l.26050 (DATA, 0x28) and 32.7 l.25359 (8-bit access to a register) -->
+               <register>
+                  <name>DATA8</name>
+                  <description>SPIM Data, low byte</description>
+                  <addressOffset>0x28</addressOffset>
+                  <size>8</size>
+                  <fields>
+                     <field>
+                        <name>DATA</name>
+                        <description>Data Value</description>
+                        <bitOffset>0</bitOffset>
+                        <bitWidth>8</bitWidth>
+                     </field>
+                  </fields>
+               </register>
                <register>
                   <name>DBGCTRL</name>
                   <description>SPIM Debug Control</description>
@@ -21519,6 +21602,21 @@ Copyright (c) 2017 Microchip Technology Inc.
                         <description>Data Value</description>
                         <bitOffset>0</bitOffset>
                         <bitWidth>9</bitWidth>
+                     </field>
+                  </fields>
+               </register>
+               <!-- Kvasir: the 8-bit view of DATA the SERCOM drivers read and point the DMAC at, as in the D21 SVD; DS60001479M 31.8.11 l.24661 (DATA, 0x28) and 31.7 l.23716 (8-bit access to a register) -->
+               <register>
+                  <name>DATA8</name>
+                  <description>USART_INT Data, low byte</description>
+                  <addressOffset>0x28</addressOffset>
+                  <size>8</size>
+                  <fields>
+                     <field>
+                        <name>DATA</name>
+                        <description>Data Value</description>
+                        <bitOffset>0</bitOffset>
+                        <bitWidth>8</bitWidth>
                      </field>
                   </fields>
                </register>

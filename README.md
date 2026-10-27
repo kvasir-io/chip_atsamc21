@@ -21,7 +21,7 @@ something that uses it:
 | Path | What |
 | --- | --- |
 | `chip.svd` | the ATSAMC21E17A's CMSIS SVD, the source of `peripherals/*.hpp` |
-| `svd/ATSAMC21G17A.svd` | the G part's, made from `chip.svd` by `scripts/make_g17a_svd.py` (`svd/README.md`) |
+| `scripts/make_g17a_svd.py` | makes the G part's SVD from `chip.svd`, at configure, into `<build>/chip_svd/` (the SDK's `kvasir_chip_variant()` in `cmake/chip.cmake`, `svd/README.md`); never checked in |
 | `cmake/chip.cmake` | picks the part (`cmake/variants/<part>.cmake`: MPU, memory sizes, linker script, SVD), `svd_convert()` |
 | `linker/chip.ld` | flash at 0, the RWW EEPROM at 0x00400000, RAM at 0x20000000 (both parts) |
 | `core/` | `core_cortex_m0plus`, a submodule |
@@ -33,21 +33,21 @@ variant's cmake file sets; every header below asks it where the parts differ),
 `Interrupt.hpp` (the vector table; SERCOM4/5 and CAN1 on the G only),
 `Io.hpp` (the ports and which of their pins each package does not bond),
 `GCLK.hpp` (the C21's generator/peripheral-channel scheme, which is not the D21's),
-`MCLK.hpp` and `PM.hpp` (clock gating, and the reset cause out of RSTC),
+`Blocks.hpp` (the clock gates, MCLK 17.8.6 to 17.8.9, over atsam_common's `ClockGate.hpp`) and `PM.hpp` (the reset cause out of RSTC),
 `Sercom_Traits.hpp`, `CAN_Traits.hpp`, `NVMCTRL_Traits.hpp`, `Dmac_Traits.hpp` and
 `Serial_Number_Traits.hpp`.
 
 ## What this package does not offer yet
 
-`src/chip/chip.hpp` deliberately leaves three drivers out of the shared set, each with the
+`src/chip/drivers.hpp` deliberately leaves three drivers out of the shared set, each with the
 reason written where the include would be:
 
 - **SPI and USART.** The C21's SVD splits those SERCOM modes into `SERCOM_SPIM`/`SERCOM_SPIS`
   and `SERCOM_USART_INT`/`SERCOM_USART_EXT` where the D21 has one of each, and the register
   sets differ with them. I2C is unaffected: `SERCOM_I2CM` is the same on both parts.
-- **The event system.** `atsam_common/EVSYS.hpp` is written against the D21's `CTRL` and
+- **The event system.** chip_atsamd21's `Evsys.hpp` is written against the D21's `CTRL` and
   `CHANNEL_TRIG`; the C21 carries the later event system with indexed `CHANNEL[n]`/`USER[n]`.
-- **The fuses.** `atsam_common/Fuses.hpp` uses the D21's NVM user-row layout, where several
+- **The fuses.** chip_atsamd21's `Fuses.hpp` uses the D21's NVM user-row layout, where several
   fields this part widens are single bits.
 
 Each is a straightforward port; none had a user when the package was written.

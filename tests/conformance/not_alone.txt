@@ -1,0 +1,4 @@
+# Headers that do not compile alone right after kvasir_config.hpp yet: <dir>/<file> <reason>. They compile inside
+# chip/chip.hpp, which includes the register headers and the chip's own headers (PM.hpp, GCLK.hpp, the *_Traits.hpp)
+# before the shared drivers. The list is the input of making the headers self-contained; a header that compiles alone
+# again comes off it (then the build compiles it alone).

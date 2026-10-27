@@ -2,7 +2,7 @@
 // The SAM C20/C21's clock limits, for chip_atsam_common/ClockSolver.hpp. Each number from
 // DS60001479M ("line" is the line of SAMC20_C21_Family_Datasheet.md) and its errata DS80000740T
 // (SAMC20_C21_Errata.md).
-// The ordering code decides two things a part name like "ATSAMC21E17A" (chip.cmake's TARGET_MPU)
+// The ordering code decides two things a part name like "ATSAMC21E17A" (chip.cmake's kvasir_chip(MPU))
 // does not say: the CPU maximum (no character or "S2" = 48 MHz, "64" = 64 MHz; Ordering
 // Information, line 903, Tables 45-8/45-9) and the temperature grade (U 85 C, N 105 C, Z 125 C
 // AEC-Q100). Both are template parameters with the slower / cooler default; a board that knows
@@ -15,15 +15,15 @@ namespace Kvasir::ClockLimits::C21 {
 // (20.8.13, lines 9871/9867); DIV 11 bits, f_DIV = f_XOSC / (2 (DIV + 1)) (20.8.14, line 9909);
 // PRESC 0/1/2 = /1 /2 /4 (20.8.15, line 10013); f_CK = f_CKR (LDR + 1 + LDRFRAC / 16) / 2^PRESC
 // (20.6.5, line 8785 ff.).
-inline constexpr Dpll                   Fdpll96m{.refMin   = 32'000,
-                                                 .refMax   = 2'000'000,
-                                                 .outMin   = 48'000'000,
-                                                 .outMax   = 96'000'000,
-                                                 .ldrBits  = 12,
-                                                 .fracBits = 4,
-                                                 .divBits  = 11,
-                                                 .prescMax = 2};
-inline constexpr Prescaler::FixedString DpllWhere = "SAM C21 DPLL96M, Table 45-52";
+inline constexpr Dpll                    fdpll96m{.refMin   = 32'000,
+                                                  .refMax   = 2'000'000,
+                                                  .outMin   = 48'000'000,
+                                                  .outMax   = 96'000'000,
+                                                  .ldrBits  = 12,
+                                                  .fracBits = 4,
+                                                  .divBits  = 11,
+                                                  .prescMax = 2};
+inline constexpr Diagnostic::FixedString dpllWhere = "SAM C21 DPLL96M, Table 45-52";
 
 enum class Speed : std::uint8_t {
     mhz48,   // Table 45-9, line 49977 (no character or "S2" in the ordering code)
@@ -46,21 +46,21 @@ enum class Rating : std::uint8_t {
 };
 
 // Table 45-41 "NVM Max Speed Characteristics", line 51006
-inline constexpr WaitStateTable WaitStates85C{
+inline constexpr WaitStateTable waitStates85C{
   "SAM C21 Table 45-41",
   {{
     {Supply::from2V7, {19'000'000, 38'000'000, 64'000'000}},
     {Supply::from4V5, {20'000'000, 38'000'000, 64'000'000}},
   }}};
 // Table 47-19 (SAM C20/C21 N, 105 C), line 52820
-inline constexpr WaitStateTable WaitStatesN105C{
+inline constexpr WaitStateTable waitStatesN105C{
   "SAM C21 Table 47-19 (N, 105 C)",
   {{
     {Supply::from2V7, {19'000'000, 38'000'000, 48'000'000}},
     {Supply::from4V5, {19'000'000, 38'000'000, 48'000'000}},
   }}};
 // Table 48-20 (AEC-Q100 grade 1, 125 C), line 53604
-inline constexpr WaitStateTable WaitStates125C{
+inline constexpr WaitStateTable waitStates125C{
   "SAM C21 Table 48-20 (AEC-Q100, 125 C)",
   {{
     {Supply::from2V7, {14'000'000, 35'000'000, 47'000'000, 48'000'000}},
@@ -74,11 +74,11 @@ template<std::uint64_t Hz,
          Rating        R = Rating::egj85>
 consteval unsigned waitStates() {
     if constexpr(R == Rating::egj85 || R == Rating::egj105) {
-        return Nvm::waitStatesFrom<Hz, S, WaitStates85C>();
+        return Nvm::waitStatesFrom<Hz, S, waitStates85C>();
     } else if constexpr(R == Rating::n105) {
-        return Nvm::waitStatesFrom<Hz, S, WaitStatesN105C>();
+        return Nvm::waitStatesFrom<Hz, S, waitStatesN105C>();
     } else {
-        return Nvm::waitStatesFrom<Hz, S, WaitStates125C>();
+        return Nvm::waitStatesFrom<Hz, S, waitStates125C>();
     }
 }
 

@@ -1,0 +1,3 @@
+# Driver templates instantiate.cpp does not instantiate, one reason per line. The others of src/chip/ and atsam_common/
+# are instantiated there once, or have no dependent register write (non-template code compiles in the header TUs).
+chip/Dpll.hpp                the DPLL and GCLK setters run from a firmware's coreClockInit(); their solvers are the host tests

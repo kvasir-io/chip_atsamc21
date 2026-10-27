@@ -1,26 +1,25 @@
 #!/usr/bin/env python3
-"""svd/ATSAMC21G17A.svd out of this package's chip.svd (the ATSAMC21E17A).
+"""The ATSAMC21G17A's SVD out of this package's chip.svd (the ATSAMC21E17A).
 
 The E and G parts of the SAM C21 are one die in two packages: the 48-pin G bonds PORTB and adds
 SERCOM4, SERCOM5 and CAN1 (SAM C20/C21 data sheet DS60001479M, Table 1-3 "SAM C21 Family
 Features": SERCOM 6 vs 4, CAN 2 vs 1; Table 6-2 note 4: "SERCOM4 and SERCOM5 are not supported on
 SAM C21E"). Everything else - register layouts, field names, and the hand-made write semantics
 in chip.svd (the `<!-- Kvasir: ... -->` edits) - is shared, so the G file is chip.svd with those
-three peripherals and their bits put in, rather than Microchip's own ATSAMC21G17A.svd, whose
+three peripherals and their bits put in (and PORT's second group, PORTB), rather than Microchip's own ATSAMC21G17A.svd, whose
 names the shared drivers are not written against (SERCOM_USART vs USART_INT/USART_EXT, DMAC
 trigger names).
 
-    scripts/make_g17a_svd.py           write svd/ATSAMC21G17A.svd
-    scripts/make_g17a_svd.py --check   exit 1 if the checked-in file is not what chip.svd gives
+    scripts/make_g17a_svd.py --out <file>
 
-Run it after every edit of chip.svd.
+The SDK's kvasir_chip_variant() (cmake/chip.cmake) runs it when a build tree for the G17A configures (and again when chip.svd
+or this script changes); the file is never checked in.
 """
 import pathlib
 import re
 import sys
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
-OUT = ROOT / "svd" / "ATSAMC21G17A.svd"
 DS = "DS60001479M"
 
 # (name, derivedFrom, base address, interrupt, NVIC line) - Table 10-3 "Interrupt Line Mapping,
@@ -128,6 +127,17 @@ def make(svd: str) -> str:
             f"scripts/make_g17a_svd.py -->\n", 1)
         svd = svd[: f.end()] + new + svd[f.end():]
 
+    # PORTB: the G part's second PORT group (GROUP[1], 0x80 after GROUP[0]: "Group 0 consists of the PA pins, and
+    # group 1 is for the PB pins ... with a 0x80 address spacing between groups", DS 28.7, md l.20439)
+    p = block(svd, "peripheral", "PORT")
+    c = block(svd, "cluster", "GROUP[%s]", p.start(), p.end())
+    new, n = re.subn(r"<dim>1</dim>", "<dim>2</dim>", c.group(0), count=1)
+    assert n == 1
+    indent = new[: len(new) - len(new.lstrip())]
+    new = (f"{indent}<!-- Kvasir: PORTB is the G part's second group ({DS} 28.7, md l.20439), "
+           f"scripts/make_g17a_svd.py -->\n" + new)
+    svd = svd[: c.start()] + new + svd[c.end():]
+
     for src, name, desc, value in TRIGGERS:
         p = block(svd, "peripheral", "DMAC")
         r = block(svd, "register", "CHCTRLB", p.start(), p.end())
@@ -144,18 +154,14 @@ def make(svd: str) -> str:
 
 def main() -> None:
     args = sys.argv[1:]
-    if args not in ([], ["--check"]):
+    if len(args) != 2 or args[0] != "--out":
         raise SystemExit(__doc__)
     svd = make((ROOT / "chip.svd").read_text(encoding="utf-8"))
-    if args == ["--check"]:
-        if not OUT.exists() or OUT.read_text(encoding="utf-8") != svd:
-            raise SystemExit(f"{OUT} is stale: run scripts/make_g17a_svd.py")
-        print(f"{OUT}: up to date")
-        return
-    OUT.parent.mkdir(exist_ok=True)
-    OUT.write_text(svd, encoding="utf-8")
-    print(f"{OUT}: {len(PERIPHERALS)} peripherals, {len(FIELDS)} fields, "
-          f"{len(TRIGGERS)} DMAC triggers in")
+    out = pathlib.Path(args[1])
+    out.parent.mkdir(parents=True, exist_ok=True)
+    out.write_text(svd, encoding="utf-8")
+    print(f"{out}: {len(PERIPHERALS)} peripherals, {len(FIELDS)} fields, "
+          f"{len(TRIGGERS)} DMAC triggers, PORT group B in")
 
 
 if __name__ == "__main__":
