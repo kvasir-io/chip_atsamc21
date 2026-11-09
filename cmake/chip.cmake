@@ -21,6 +21,11 @@ kvasir_chip_variant(
     chip_svd_file)
 include(${_variant})
 
+# The chip's register seam (Kvasir_SDK Register/Exec.hpp includes the header named here at its end, so every TU that
+# reaches apply() has it): the PORT's DIR and OUT as shared states, so that one apply() writing a pin's level or
+# direction through two of their registers is a compile error (chip_atsam_common RegisterSeam.hpp).
+list(APPEND chip_definitions [[KVASIR_CHIP_REGISTER_SEAM="chip/atsam_common/RegisterSeam.hpp"]])
+
 # Kvasir's write semantics (svd_convert's defaults): a new unclassified write-only field stops the build
 kvasir_chip_svd(peripherals ${chip_svd_file})
 
